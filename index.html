@@ -28,7 +28,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
 
-  <!-- 密碼驗證鎖定畫面 -->
+  <!-- 密碼驗證鎖定畫面 (已移除任何洩漏密碼的提示) -->
   <div id="password-gate" class="fixed inset-0 z-50 bg-slate-50 text-slate-800 flex items-center justify-center p-4">
     <div class="w-full max-w-md relative z-10 bg-white border border-slate-200/90 rounded-3xl p-7 sm:p-9 shadow-xl">
       <div class="flex flex-col items-center text-center mb-7">
@@ -39,19 +39,19 @@
           SECURITY VERIFICATION
         </div>
         <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">NASA 團員通訊錄</h1>
-        <p class="text-xs text-slate-500 mt-1.5">請輸入專屬密碼解鎖進入</p>
+        <p class="text-xs text-slate-500 mt-1.5">團隊內部資訊系統，請輸入專屬通行密碼解鎖</p>
       </div>
 
-      <form id="password-form" onsubmit="handlePasswordSubmit(event)" class="space-y-4">
+      <div class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-2">存取密碼</label>
           <div class="relative">
-            <input id="input-password" type="password" placeholder="請輸入密碼 (預設: nasa7885)" class="w-full pl-4 pr-11 py-3 text-sm bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-slate-900 border border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none font-mono">
+            <input id="input-password" type="password" placeholder="請輸入密碼..." class="w-full pl-4 pr-11 py-3 text-sm bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-slate-900 border border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none font-mono">
             <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400">
               <span id="eye-icon">👁️</span>
             </button>
           </div>
-          <p id="password-error" class="hidden-custom text-xs text-rose-500 mt-2">密碼不正確，請重新輸入</p>
+          <p id="password-error" class="hidden-custom text-xs text-rose-500 mt-2 font-medium">密碼不正確，請重新輸入</p>
         </div>
 
         <div class="flex items-center gap-2 pt-1 text-xs text-slate-600">
@@ -59,10 +59,10 @@
           <label for="checkbox-remember" class="cursor-pointer">記住登入狀態</label>
         </div>
 
-        <button type="submit" class="w-full mt-2 py-3 px-4 text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-all cursor-pointer">
+        <button type="button" id="btn-login" onclick="executeLogin()" class="w-full mt-2 py-3 px-4 text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-all cursor-pointer">
           解鎖並進入通訊錄 →
         </button>
-      </form>
+      </div>
     </div>
   </div>
 
@@ -87,7 +87,7 @@
           </div>
 
           <div class="flex items-center gap-3">
-            <button onclick="lockApp()" class="p-2 text-slate-400 hover:text-rose-600 text-xs cursor-pointer">鎖定</button>
+            <button onclick="lockApp()" class="p-2 text-slate-400 hover:text-rose-600 text-xs cursor-pointer">登出鎖定</button>
             <button id="btn-sync" onclick="syncData()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-xs cursor-pointer">
               <svg id="sync-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -118,4 +118,351 @@
   </div>
 
   <!-- 同步提示 Toast -->
-  <div id="sync-toast" class="hidden
+  <div id="sync-toast" class="hidden-custom fixed bottom-6 right-6 z-50 max-w-md w-full px-4">
+    <div id="sync-toast-box" class="flex items-start gap-3 p-4 rounded-2xl shadow-xl border text-white bg-slate-900 border-slate-700">
+      <div class="flex-1 min-w-0">
+        <p id="sync-toast-title" class="text-sm font-semibold">同步狀態</p>
+        <p id="sync-toast-msg" class="text-xs text-slate-300 mt-0.5 leading-relaxed"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const HUBBLE_URL = 'https://docs.google.com/spreadsheets/d/150xzjXHOJyRFvaSEVdaazkA4k_WbHj6Ak9HPCRU8_KQ/gviz/tq?tqx=out:csv';
+    const NASA_URL = 'https://docs.google.com/spreadsheets/d/1_0yexhQrjE_P-x9cJy543tpPbLZl_-wViitAgiqhbvA/gviz/tq?tqx=out:csv';
+
+    const DEFAULT_HUBBLE = `,員編,姓名,英文別名,職級,職稱,居家上班日,"分機/專線",,"行動電話",E-MAIL,通訊APP,座位編號,ERP單位,公司,組織資料
+,230508,柯奕安,YI-AN,專員,儲備幹部,,O:,02-87939000#2949,0906939285,andyke,,6A-P5,客製台北,雄獅,客製產品部/客製二組
+,240330,張元齡,Chloe,資深專員,儲備幹部,,O:,02-87939000#8058,0979678666,chloeylchang,,3B-A3,總管,雄獅,人才策略與發展部/人才培育組
+,240332,薛羽崴,Noma,專員,儲備幹部,,O:,02-87939000#2601,0983182805,nomahsueh,,8B-O1,差旅台北,雄獅,公商差旅部/國際企業服務組
+,240333,李浩然,hoyin,資深專員,儲備幹部,,O:,02-87939000#8190,0960800467,hoyinli,,3D-D3,總管,雄獅,企本二處/供應商管理部
+,240355,孫瑞廷,Ray,資深專員,儲備幹部,,O:,02-87939000#9097,0975710592,raysun,,5B-K3,B2C行銷,雄獅,行銷部/國際行銷組
+,240356,黃俞蓁,Alice,專員,儲備幹部,,O:,02-87939000#2436,0920050677,aliceyhuang,,4C-D6,產品主題,雄獅,主題旅遊部/璽品長線組
+,250342,馮子凌,Temmy,專員,儲備幹部,,O:,02-87939000#2148,0921860702,temmyfeng,,6B-O5,產品主題,雄獅,主題旅遊部/國外鐵道組
+,250388,林欣怡,Elisa,專員,儲備幹部,,O:,02-87939000#8023,0908751220,elisalin,,3D-D2,總管,雄獅,企本二處/經營企劃部
+,250389,高玉淳,Ellie,專員,儲備幹部,,O:,02-87939000#2569,0980950466,elliekao,,8B-O2,差旅台北,雄獅,公商差旅部/國際企業服務組
+,250390,彭筠,YUN,專員,儲備幹部,,O:,02-87939000#2394,0984320207,maypeng,,6B-P5,產品主題,雄獅,主題旅遊部/國外鐵道組
+,250391,陳冠廷,Alan,專員,儲備幹部,,O:,02-87939000#8173,0978216878,ktchen,,3D-A5,總管,雄獅,企本二處/供應商管理部
+,250508,李庭瑜,Tini,專員,儲備幹部,,O:,02-87939000#9106,0926191343,tinilee,,5B-R4,批售行銷,雄獅,行銷部/通路行銷組
+,250512,辰野百音,Mone,專員,儲備幹部,,O:,02-87939000#2627,0937596793,monetatsuno,,6B-E2,入境台北,雄獅,入境部/日語組
+,250543,黃潔瑜,Mini,專員,儲備幹部,,O:,02-87939000#2955,0966404311,minivong,,6A-Q2,獎旅台北,雄獅,獎勵旅遊部/業務一組
+,260083,陳亭伊,Olivia,專員,儲備幹部,,O:,02-87939000#2378,0976895241,oliviachen,,4B-E3,歐洲,雄獅,歐洲部/東歐組
+,260200,邱玫雅,Mei,專員,儲備幹部,,O:,0000-0000#0000,0900000000,meichiu,,5B-M2,產品行銷,雄獅,行銷部/產品行銷組
+,260201,潘氏竹玲,PHAN THI TRUC LINH,專員,儲備幹部,,O:,02-87939000#0000,0976386201,charlinepan,,8B-B0,國際辦,雄獅,全球事業發展處/全球出境產品部
+,260202,江其儒,zuzu,專員,儲備幹部,,O:,02-87939000#2117,0963669727,zuzuchiang,,4C-A7,產品主題,雄獅,主題旅遊部/璽品短線組
+,260246,劉名媛,Alice,專員,儲備幹部,,O:,02-87939000#8052,0906935925,alicemliu,,3D-A6,總管,雄獅,經營企劃部/海外企劃組`;
+
+    const DEFAULT_NASA = `時間戳記,中文姓名,NASA幹部職位,出生月日 (MM/DD),你最美麗/帥氣的照片一張,MBTI,興趣,負責業務/專案概述
+2026/10/22 上午 11:00:08,李浩然,,03/18,https://drive.google.com/open?id=1IA8FQX2mpwgHxMaMpiRjnOKedaMwTRrL,ENFJ,羽球、露營,導領E化平台、KM
+2026/10/22 下午 4:30:34,郭瓔慈,,10/07,https://drive.google.com/open?id=1wxWsoK2_4jKmtCDmscBi4uWvqCrTeKvl,ENTJ,運動 出去玩 喝酒🍺,全球coach tour
+2026/10/22 下午 5:21:39,龍俞孜,副團長,12/02,https://drive.google.com/open?id=1MLCZnwcrf-Dr815jszOPItoK8lg1gEf8,,,差旅企劃
+2026/10/26 上午 8:42:04,張俽瑜,,08/05,https://drive.google.com/open?id=1P3Ryv7wdJTEP641CzNzZm50nlO5oS9o8,ISFJ,追劇看綜藝 健行 看海,財務部
+2026/10/27 下午 9:39:27,張元齡,,06/21,https://drive.google.com/open?id=1IW0quHnobceIiyBTs195KCNQPwJH9XAd,ISFJ,努力培養運動習慣中,人才培育
+2026/10/29 下午 1:54:36,陳冠廷,團長,04/05,https://drive.google.com/open?id=1c5w97H1AIwnpgo7cPzOrbKd8gS6jFrYw,ENFJ,旅遊、看電影、吃美食,企本二處 / 供應商管理部；供應商支付優化、供應商日常營運、制度流程優化`;
+
+    let allMembers = [];
+
+    // 自動過濾 O:、F: 並精確提取分機號碼
+    function sanitizeExtension(cellH, cellI) {
+      const candidateI = (cellI || '').trim();
+      const candidateH = (cellH || '').trim();
+
+      let target = candidateI;
+      if (!target || target === 'O:' || target.startsWith('O:\n') || target.startsWith('O:')) {
+        target = candidateH;
+      }
+
+      const firstLine = target.split(/[\r\n]+/)[0].trim();
+      let clean = firstLine.replace(/^[OF]:\s*/i, '').trim();
+
+      if (clean.includes('#')) {
+        const ext = clean.split('#')[1].trim();
+        return `#${ext}`;
+      }
+
+      return clean || '無分機';
+    }
+
+    function getDirectImageUrl(url) {
+      if (!url) return '';
+      const match = url.match(/(?:open\?id=|file\/d\/|uc\?id=)([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w600`;
+      }
+      return url;
+    }
+
+    function getSurname(name) {
+      if (!name) return '友';
+      const trimmed = name.trim();
+      const compound = ['歐陽', '司馬', '諸葛', '公孫', '皇甫', '夏侯', '辰野'];
+      for (const cs of compound) {
+        if (trimmed.startsWith(cs)) return cs;
+      }
+      return trimmed.charAt(0);
+    }
+
+    function renderAvatar(name, photoUrl) {
+      const surname = getSurname(name);
+      const directUrl = getDirectImageUrl(photoUrl);
+
+      const fallbackHtml = `
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-800 text-white flex items-center justify-center font-bold text-2xl shadow-md ring-4 ring-white shrink-0">
+          ${surname}
+        </div>`;
+
+      if (!directUrl) return fallbackHtml;
+
+      return `
+        <img src="${directUrl}" alt="${name}" 
+          class="w-16 h-16 rounded-2xl object-cover ring-4 ring-white shadow-md shrink-0"
+          onerror="this.outerHTML='<div class=\\'w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-800 text-white flex items-center justify-center font-bold text-2xl shadow-md ring-4 ring-white shrink-0\\'>${surname}</div>'">
+      `;
+    }
+
+    function parseCSV(text) {
+      if (!text) return [];
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+      return lines.map(line => {
+        const row = [];
+        let inQuotes = false;
+        let cur = '';
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') { inQuotes = !inQuotes; }
+          else if (c === ',' && !inQuotes) { row.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
+          else { cur += c; }
+        }
+        row.push(cur.trim().replace(/^"|"$/g, ''));
+        return row;
+      });
+    }
+
+    function buildRoster(hubbleCsv, nasaCsv) {
+      const hRows = parseCSV(hubbleCsv);
+      const nRows = parseCSV(nasaCsv);
+
+      const hMap = new Map();
+      hRows.forEach(r => {
+        if (!r || r.length < 3 || r[2] === '姓名') return;
+        const name = r[2].trim();
+        if (!name) return;
+
+        const cleanExt = sanitizeExtension(r[7], r[8]);
+
+        hMap.set(name, {
+          name,
+          englishName: r[3] || '',
+          rank: r[4] || '專員',
+          title: r[5] || '儲備幹部',
+          extension: cleanExt,
+          phone: r[9] || '',
+          email: r[10] || '',
+          seat: r[12] || '待定',
+          company: r[14] || '雄獅',
+          organization: r[15] || '未分派',
+        });
+      });
+
+      const nMap = new Map();
+      nRows.forEach(r => {
+        if (!r || r.length < 2 || r[1] === '中文姓名') return;
+        const name = r[1].trim();
+        if (!name) return;
+        nMap.set(name, {
+          nasaRole: r[2] || '',
+          birthday: r[3] || '',
+          photoUrl: r[4] || '',
+          mbti: r[5] || '',
+          interests: r[6] || '',
+          projectSummary: r[7] || '',
+        });
+      });
+
+      const names = new Set([...hMap.keys(), ...nMap.keys()]);
+      const list = [];
+      names.forEach(name => {
+        const h = hMap.get(name) || {};
+        const n = nMap.get(name) || {};
+        list.push({
+          name,
+          englishName: h.englishName || '',
+          rank: h.rank || '專員',
+          title: h.title || '儲備幹部',
+          extension: h.extension || '無分機',
+          phone: h.phone || '',
+          email: h.email || '',
+          seat: h.seat || '待定',
+          company: h.company || '雄獅',
+          organization: h.organization || 'NASA專案團隊',
+          nasaRole: n.nasaRole || '',
+          birthday: n.birthday || '',
+          photoUrl: n.photoUrl || '',
+          mbti: n.mbti || '',
+          interests: n.interests || '',
+          projectSummary: n.projectSummary || '',
+        });
+      });
+
+      return list.sort((a, b) => {
+        if (a.nasaRole && !b.nasaRole) return -1;
+        if (!a.nasaRole && b.nasaRole) return 1;
+        return a.name.localeCompare(b.name, 'zh-Hant');
+      });
+    }
+
+    function renderUI() {
+      const grid = document.getElementById('members-grid');
+      const q = document.getElementById('input-search').value.toLowerCase().trim();
+      const comp = document.getElementById('select-company').value;
+      const org = document.getElementById('select-org').value;
+
+      const filtered = allMembers.filter(m => {
+        if (comp !== 'ALL' && m.company !== comp) return false;
+        if (org !== 'ALL' && !m.organization.includes(org)) return false;
+        if (q && !`${m.name} ${m.englishName} ${m.extension} ${m.seat} ${m.organization} ${m.mbti}`.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      document.getElementById('stat-total').innerText = allMembers.length;
+      document.getElementById('stat-officers').innerText = allMembers.filter(m => m.nasaRole).length;
+
+      grid.innerHTML = filtered.map(m => `
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3.5 mb-4">
+              ${renderAvatar(m.name, m.photoUrl)}
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <h3 class="text-lg font-bold text-slate-900">${m.name}</h3>
+                  ${m.nasaRole ? `<span class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-100 text-amber-700">★ ${m.nasaRole}</span>` : ''}
+                </div>
+                <p class="text-xs text-slate-400 truncate">${m.englishName || 'Member'}</p>
+                <span class="inline-block mt-1 px-2 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-semibold">${m.rank}</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 text-xs text-slate-600 border-t pt-3">
+              <div class="truncate">🏢 <span class="font-medium">${m.company}</span> · ${m.organization}</div>
+              <div>📍 座位：<b>${m.seat}</b></div>
+              <div>📞 分機：<b class="text-blue-700 font-mono text-sm">${m.extension}</b></div>
+              ${m.phone ? `<div>📱 手機：${m.phone}</div>` : ''}
+              ${m.email ? `<div class="truncate">✉️ <a href="mailto:${m.email}" class="text-blue-600 hover:underline">${m.email}</a></div>` : ''}
+            </div>
+          </div>
+
+          <div class="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+            ${m.mbti ? `<span class="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-semibold">MBTI: ${m.mbti}</span>` : '<span class="text-slate-400">未填 MBTI</span>'}
+            ${m.birthday ? `<span class="text-slate-500 font-mono">🎂 ${m.birthday}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function handleFilterChange() { renderUI(); }
+
+    async function fetchWithTimeout(url, ms = 4000) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), ms);
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(id);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.text();
+      } catch (e) {
+        clearTimeout(id);
+        throw e;
+      }
+    }
+
+    async function syncData() {
+      const icon = document.getElementById('sync-icon');
+      const text = document.getElementById('sync-text');
+      icon.classList.add('animate-spin-custom');
+      text.innerText = '連線同步中...';
+
+      try {
+        const [resH, resN] = await Promise.all([
+          fetchWithTimeout(HUBBLE_URL, 4000),
+          fetchWithTimeout(NASA_URL, 4000)
+        ]);
+
+        allMembers = buildRoster(resH, resN);
+        renderUI();
+        document.getElementById('stat-time').innerText = 'Google 雲端已同步';
+        showToast('同步成功', '已即時拉取 Google 試算表最新數據與分機！');
+      } catch (err) {
+        allMembers = buildRoster(DEFAULT_HUBBLE, DEFAULT_NASA);
+        renderUI();
+        document.getElementById('stat-time').innerText = '使用內建備份';
+        showToast('連線提示', 'Google 試算表連線受限，已切換至本機備份名單');
+      } finally {
+        icon.classList.remove('animate-spin-custom');
+        text.innerText = '重新同步 Google 試算表';
+      }
+    }
+
+    function showToast(title, msg) {
+      const toast = document.getElementById('sync-toast');
+      document.getElementById('sync-toast-title').innerText = title;
+      document.getElementById('sync-toast-msg').innerText = msg;
+      toast.classList.remove('hidden-custom');
+      setTimeout(() => toast.classList.add('hidden-custom'), 4000);
+    }
+
+    function checkAuth() {
+      const isAuth = localStorage.getItem('nasa_auth') === 'true';
+      if (isAuth) {
+        document.getElementById('password-gate').classList.add('hidden-custom');
+        document.getElementById('main-app').classList.remove('hidden-custom');
+        syncData();
+      }
+    }
+
+    // 乾淨直接的登入函式，支援按鈕點擊與 Enter 鍵
+    function executeLogin() {
+      const input = document.getElementById('input-password');
+      const p = input.value.trim();
+      const remember = document.getElementById('checkbox-remember').checked;
+
+      if (p === 'nasa7885') {
+        if (remember) {
+          localStorage.setItem('nasa_auth', 'true');
+        } else {
+          sessionStorage.setItem('nasa_auth', 'true');
+        }
+        document.getElementById('password-error').classList.add('hidden-custom');
+        document.getElementById('password-gate').classList.add('hidden-custom');
+        document.getElementById('main-app').classList.remove('hidden-custom');
+        syncData();
+      } else {
+        document.getElementById('password-error').classList.remove('hidden-custom');
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const input = document.getElementById('input-password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function lockApp() {
+      localStorage.removeItem('nasa_auth');
+      sessionStorage.removeItem('nasa_auth');
+      location.reload();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      const input = document.getElementById('input-password');
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          executeLogin();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
