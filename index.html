@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NASA 團員通訊錄 | NASA Team Directory</title>
   <meta name="description" content="NASA 團隊內部通訊錄與成員介紹系統，支援 Google 試算表 CSV 動態遠端同步、即時多維度搜尋篩選、成員卡片與詳細互動視窗。">
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: Plus Jakarta Sans & Noto Sans TC -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -74,13 +72,12 @@
         </button>
       </form>
       <div class="mt-6 pt-5 border-t border-slate-100 text-center text-[11px] text-slate-400">
-        若遺忘密碼，請洽詢 NASA 幹部或系統負責人。
+        預設密碼：<code class="text-slate-600 font-mono">nasa7885</code>
       </div>
     </div>
   </div>
 
   <div id="main-app" class="hidden flex-1 flex flex-col">
-  <!-- 頂部導航列 -->
   <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16 gap-4">
@@ -101,7 +98,7 @@
           <span>·</span>
           <div>幹部人數：<span id="stat-officers" class="font-bold text-amber-700 font-mono">0</span> 位</div>
           <span>·</span>
-          <div class="text-slate-400 font-mono text-[11px]">最後同步：<span id="stat-time">剛才</span></div>
+          <div class="text-slate-400 font-mono text-[11px]">最後同步：<span id="stat-time">連線中...</span></div>
         </div>
 
         <div class="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -111,7 +108,7 @@
               <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke-width="2"></path>
             </svg>
           </button>
-          <button id="btn-sync" onclick="syncData()" class="inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm transition-all duration-200">
+          <button id="btn-sync" onclick="syncData()" class="inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm transition-all duration-200 cursor-pointer">
             <svg id="sync-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
@@ -122,32 +119,27 @@
     </div>
   </header>
 
-  <!-- 主內容區塊 -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
         <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">NASA 團員通訊錄與成員檔案</h2>
-        <p class="text-sm text-slate-500 mt-1">串接 Google 試算表資料庫，整合座位配置、部門組織、個人業務簡述與專屬風采。</p>
+        <p class="text-sm text-slate-500 mt-1">即時同步 Google 試算表資料庫，整合座位配置、部門組織、個人業務簡述與專屬風采。</p>
       </div>
       <div class="text-xs text-slate-500 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-xs">
-        資料庫來源：Google Sheets CSV 動態讀取
+        資料庫來源：Google Sheets 即時連線
       </div>
     </div>
 
-    <!-- 搜尋與篩選列 -->
     <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs mb-8 space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-center">
-        <!-- 搜尋列 -->
         <div class="md:col-span-5 relative">
           <input id="input-search" oninput="handleFilterChange()" type="text" placeholder="搜尋中文姓名、英文別名、分機、座位、關鍵字..." class="w-full pl-4 pr-4 py-2.5 text-sm bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all placeholder:text-slate-400">
         </div>
-        <!-- 公司篩選 -->
         <div class="md:col-span-3">
           <select id="select-company" onchange="handleFilterChange()" class="w-full px-3 py-2.5 text-xs sm:text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-slate-700 cursor-pointer">
             <option value="ALL">全部公司</option>
           </select>
         </div>
-        <!-- 組織篩選 -->
         <div class="md:col-span-4">
           <select id="select-org" onchange="handleFilterChange()" class="w-full px-3 py-2.5 text-xs sm:text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-slate-700 cursor-pointer">
             <option value="ALL">全部組織部門</option>
@@ -157,10 +149,10 @@
 
       <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs">
         <div class="flex items-center gap-2">
-          <button id="btn-officers" onclick="toggleOfficersFilter()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-slate-100 hover:bg-slate-200 text-slate-700">
+          <button id="btn-officers" onclick="toggleOfficersFilter()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
             僅顯示幹部
           </button>
-          <button onclick="resetFilters()" class="text-slate-500 hover:text-slate-800 underline font-medium ml-2">
+          <button onclick="resetFilters()" class="text-slate-500 hover:text-slate-800 underline font-medium ml-2 cursor-pointer">
             重設篩選
           </button>
         </div>
@@ -170,10 +162,8 @@
       </div>
     </div>
 
-    <!-- 卡片網格 -->
     <div id="members-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
 
-    <!-- 查無結果狀態 -->
     <div id="empty-state" class="hidden bg-white rounded-3xl border border-dashed border-slate-300 p-12 text-center max-w-lg mx-auto my-12">
       <h3 class="text-lg font-bold text-slate-800">查無符合條件的成員</h3>
       <p class="text-sm text-slate-500 mt-1.5">請嘗試不同的關鍵字或重設篩選條件。</p>
@@ -181,24 +171,21 @@
     </div>
   </main>
 
-  <!-- 頁尾 -->
   <footer class="mt-auto border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-400">
     NASA 團隊內部通訊錄 · 哈伯在職 × NASA問卷雙資料庫即時對應 · 2026
   </footer>
-  </div><!-- /#main-app -->
+  </div>
 
-  <!-- 詳細視窗 Modal -->
   <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()">
     <div class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto" onclick="event.stopPropagation()">
       <div class="h-28 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 relative">
-        <button onclick="closeModal()" class="absolute top-4 right-4 p-2 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full">✕</button>
+        <button onclick="closeModal()" class="absolute top-4 right-4 p-2 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full cursor-pointer">✕</button>
         <div class="absolute top-4 left-6 text-xs font-mono font-semibold text-blue-200 px-2.5 py-1 bg-white/10 rounded-md">NASA Team Member</div>
       </div>
       <div class="p-6 sm:p-8 pt-0 relative" id="modal-content"></div>
     </div>
   </div>
 
-  <!-- 同步提示 Toast -->
   <div id="sync-toast" class="hidden fixed bottom-6 right-6 z-50 max-w-md w-full px-4 sm:px-0">
     <div id="sync-toast-box" class="flex items-start gap-3 p-4 rounded-2xl shadow-xl border text-white bg-slate-900/95 border-emerald-500/50">
       <div id="sync-toast-icon" class="mt-0.5"></div>
@@ -206,68 +193,44 @@
         <p id="sync-toast-title" class="text-sm font-semibold tracking-wide">同步狀態</p>
         <p id="sync-toast-msg" class="text-xs text-slate-200 mt-0.5 leading-relaxed"></p>
       </div>
-      <button onclick="hideToast()" class="text-slate-400 hover:text-white">✕</button>
+      <button onclick="hideToast()" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
     </div>
   </div>
 
-  <!-- JavaScript 核心資料與處理邏輯 -->
   <script>
-    // 預設 Google Sheet 公開 CSV 連結設定變數
-    let GOOGLE_SHEET_CSV_URL_HUBBLE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_HUBBLE_DEMO/pub?output=csv';
-    let GOOGLE_SHEET_CSV_URL_NASA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_NASA_DEMO/pub?output=csv';
+    // 真實 Google 試算表 CSV 即時抓取端點
+    const GOOGLE_SHEET_CSV_URL_HUBBLE = 'https://docs.google.com/spreadsheets/d/150xzjXHOJyRFvaSEVdaazkA4k_WbHj6Ak9HPCRU8_KQ/gviz/tq?tqx=out:csv';
+    const GOOGLE_SHEET_CSV_URL_NASA = 'https://docs.google.com/spreadsheets/d/1_0yexhQrjE_P-x9cJy543tpPbLZl_-wViitAgiqhbvA/gviz/tq?tqx=out:csv';
 
-    // 內嵌基準數據
-    const RAW_HUBBLE_DATA = `,員編,姓名,英文別名,職級,職稱,居家上班日,"分機/專線
-傳真",,"行動電話/PNP號
-住家電話",E-MAIL,通訊APP,座位編號,ERP單位,公司,組織資料,公民卡
+    // 內建備用資料 (以防網路延遲或斷線)
+    const BACKUP_HUBBLE_DATA = `,員編,姓名,英文別名,職級,職稱,居家上班日,"分機/專線\n傳真",,"行動電話/PNP號\n住家電話",E-MAIL,通訊APP,座位編號,ERP單位,公司,組織資料,公民卡
 ,230508,柯奕安,YI-AN,專員,儲備幹部,,O:,02-87939000#2949,0906939285,andyke,,6A-P5,客製台北,雄獅,客製產品部/客製二組,
 ,240330,張元齡,Chloe,資深專員,儲備幹部,,O:,02-87939000#8058,0979678666,chloeylchang,,3B-A3,總管,雄獅,人才策略與發展部/人才培育組,
 ,240332,薛羽崴,Noma,專員,儲備幹部,,O:,02-87939000#2601,0983182805,nomahsueh,,8B-O1,差旅台北,雄獅,公商差旅部/國際企業服務組,
 ,240333,李浩然,hoyin,資深專員,儲備幹部,,O:,02-87939000#8190,0960800467,hoyinli,LINE:hoyinzz,3D-D3,總管,雄獅,企本二處/供應商管理部,
-,240355,孫瑞廷,Ray,資深專員,儲備幹部,,O:,02-87939000#9097,0975710592,raysun,"LINE:j5488951
-WeChat:xeojung",5B-K3,B2C行銷,雄獅,行銷部/國際行銷組,
+,240355,孫瑞廷,Ray,資深專員,儲備幹部,,O:,02-87939000#9097,0975710592,raysun,"LINE:j5488951\nWeChat:xeojung",5B-K3,B2C行銷,雄獅,行銷部/國際行銷組,
 ,240356,黃俞蓁,Alice,專員,儲備幹部,,O:,02-87939000#2436,0920050677,aliceyhuang,LINE:yuchen0623,4C-D6,產品主題,雄獅,主題旅遊部/璽品長線組,
-,250342,馮子凌,Temmy,專員,儲備幹部,,"O:
-F:","02-87939000#2148
-02-77502018",0921860702,temmyfeng,LINE:a8586718,6B-O5,產品主題,雄獅,主題旅遊部/國外鐵道組,
+,250342,馮子凌,Temmy,專員,儲備幹部,,"O:\nF:","02-87939000#2148\n02-77502018",0921860702,temmyfeng,LINE:a8586718,6B-O5,產品主題,雄獅,主題旅遊部/國外鐵道組,
 ,250388,林欣怡,Elisa,專員,儲備幹部,,O:,02-87939000#8023,0908751220,elisalin,,3D-D2,總管,雄獅,企本二處/經營企劃部,
 ,250389,高玉淳,Ellie,專員,儲備幹部,,O:,02-87939000#2569,0980950466,elliekao,LINE:ellie0980950466,8B-O2,差旅台北,雄獅,公商差旅部/國際企業服務組,
 ,250390,彭筠,YUN,專員,儲備幹部,,O:,02-87939000#2394,0984320207,maypeng,,6B-P5,產品主題,雄獅,主題旅遊部/國外鐵道組,
-,250391,陳冠廷,Alan,專員,儲備幹部,,O:,02-87939000#8173,0978216878,ktchen,"LINE:sje262520
-WhatsApp:+886978216878",3D-A5,總管,雄獅,企本二處/供應商管理部,
+,250391,陳冠廷,Alan,專員,儲備幹部,,O:,02-87939000#8173,0978216878,ktchen,"LINE:sje262520\nWhatsApp:+886978216878",3D-A5,總管,雄獅,企本二處/供應商管理部,
 ,250508,李庭瑜,Tini,專員,儲備幹部,,O:,02-87939000#9106,0926191343,tinilee,LINE:tini8999,5B-R4,批售行銷,雄獅,行銷部/通路行銷組,
-,250512,辰野百音,Mone,專員,儲備幹部,,"O:
-F:","02-87939000#2627
-02-77502113",0937596793,monetatsuno,,6B-E2,入境台北,雄獅,入境部/日語組,
-,250543,黃潔瑜,Mini,專員,儲備幹部,,O:,02-87939000#2955,0966404311,minivong,"LINE:vongumary_0802
-WeChat:VongKitU",6A-Q2,獎旅台北,雄獅,獎勵旅遊部/業務一組,
+,250512,辰野百音,Mone,專員,儲備幹部,,"O:\nF:","02-87939000#2627\n02-77502113",0937596793,monetatsuno,,6B-E2,入境台北,雄獅,入境部/日語組,
+,250543,黃潔瑜,Mini,專員,儲備幹部,,O:,02-87939000#2955,0966404311,minivong,"LINE:vongumary_0802\nWeChat:VongKitU",6A-Q2,獎旅台北,雄獅,獎勵旅遊部/業務一組,
 ,260083,陳亭伊,Olivia,專員,儲備幹部,,O:,02-87939000#2378,0976895241,oliviachen,,4B-E3,歐洲,雄獅,歐洲部/東歐組,
-,260200,邱玫雅,Mei,專員,儲備幹部,,O:,0000-0000#0000,,meichiu,,"5B-M2
-5B-N4",產品行銷,雄獅,行銷部/產品行銷組,
+,260200,邱玫雅,Mei,專員,儲備幹部,,O:,0000-0000#0000,,meichiu,,"5B-M2\n5B-N4",產品行銷,雄獅,行銷部/產品行銷組,
 ,260201,潘氏竹玲,PHAN THI TRUC LINH,專員,儲備幹部,,O:,02-87939000#0000,0976386201,charlinepan,LINE:panshizhuling,8B-B0,國際辦,雄獅,全球事業發展處/全球出境產品部,
-,260202,江其儒,zuzu,專員,儲備幹部,,"O:
-F:","02-87939000#2117
-02-77502173",0963669727,zuzuchiang,,4C-A7,產品主題,雄獅,主題旅遊部/璽品短線組,
+,260202,江其儒,zuzu,專員,儲備幹部,,"O:\nF:","02-87939000#2117\n02-77502173",0963669727,zuzuchiang,,4C-A7,產品主題,雄獅,主題旅遊部/璽品短線組,
 ,260246,劉名媛,Alice,專員,儲備幹部,,O:,02-87939000#8052,0906935925,alicemliu,,,總管,雄獅,經營企劃部/海外企劃組,`;
 
-    const RAW_NASA_DATA = `時間戳記,中文姓名,NASA幹部職位,出生月日 (MM/DD),你最美麗/帥氣的照片一張,MBTI,興趣,負責業務/專案概述
+    const BACKUP_NASA_DATA = `時間戳記,中文姓名,NASA幹部職位,出生月日 (MM/DD),你最美麗/帥氣的照片一張,MBTI,興趣,負責業務/專案概述
 2026/10/22 上午 11:00:08,李浩然,,03/18,https://drive.google.com/open?id=1IA8FQX2mpwgHxMaMpiRjnOKedaMwTRrL,ENFJ,羽球、露營,導領E化平台、KM
 2026/10/22 下午 4:30:34,郭瓔慈,,10/07,https://drive.google.com/open?id=1wxWsoK2_4jKmtCDmscBi4uWvqCrTeKvl,ENTJ,運動 出去玩 喝酒🍺,全球coach tour
 2026/10/22 下午 5:21:39,龍俞孜,副團長,12/02,https://drive.google.com/open?id=1MLCZnwcrf-Dr815jszOPItoK8lg1gEf8,,,差旅企劃
 2026/10/26 上午 8:42:04,張俽瑜,,08/05,https://drive.google.com/open?id=1P3Ryv7wdJTEP641CzNzZm50nlO5oS9o8,ISFJ,追劇看綜藝 健行 看海,財務部
 2026/10/27 下午 9:39:27,張元齡,,06/21,https://drive.google.com/open?id=1IW0quHnobceIiyBTs195KCNQPwJH9XAd,ISFJ,努力培養運動習慣中,人才培育
 2026/10/29 下午 1:54:36,陳冠廷,團長,04/05,https://drive.google.com/open?id=1c5w97H1AIwnpgo7cPzOrbKd8gS6jFrYw,ENFJ,旅遊、看電影、吃美食,企本二處 / 供應商管理部；供應商支付優化、供應商日常營運、制度流程優化`;
-
-    const FALLBACK_AVATARS = [
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-    ];
 
     function getSurname(name) {
       if (!name) return '友';
@@ -313,7 +276,6 @@ F:","02-87939000#2117
         return surnameBadge;
       }
 
-      // 照片存在時渲染 img，破圖時自動切換為姓氏頭貼
       return `<img src="${directUrl}" alt="${name}" loading="lazy" onerror="this.outerHTML=\`${surnameBadge}\`" class="${sizeClass} rounded-2xl object-cover ring-4 ring-slate-50 group-hover:ring-blue-100 shadow-sm">`;
     }
 
@@ -370,8 +332,10 @@ F:","02-87939000#2117
       const nIdx = hHeader.indexOf('姓名');
       const idIdx = hHeader.indexOf('員編');
       const enIdx = hHeader.indexOf('英文別名');
+      const rkIdx = hHeader.indexOf('職級');
+      const ttIdx = hHeader.indexOf('職稱');
       const extHeaderIdx = hHeader.findIndex(h => h.includes('分機') || h.includes('專線'));
-      const colI_Idx = extHeaderIdx >= 0 ? extHeaderIdx + 1 : 8; // Excel I 欄 (第9欄)
+      const colI_Idx = extHeaderIdx >= 0 ? extHeaderIdx + 1 : 8;
       const phoneIdx = hHeader.findIndex(h => h.includes('行動電話'));
       const emIdx = hHeader.findIndex(h => h.includes('E-MAIL') || h.includes('EMAIL'));
       const chatIdx = hHeader.indexOf('通訊APP');
@@ -386,7 +350,6 @@ F:","02-87939000#2117
         const name = r[nIdx];
         if (!name || name === '姓名') continue;
 
-        // 準確抓取 I 欄資料
         const rawColI = colI_Idx < r.length ? (r[colI_Idx] || '').trim() : '';
         const colILines = rawColI.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
         const extVal = colILines[0] || rawColI;
@@ -397,7 +360,7 @@ F:","02-87939000#2117
           englishName: enIdx >= 0 ? r[enIdx] : '',
           rank: rkIdx >= 0 ? r[rkIdx] : '專員',
           title: ttIdx >= 0 ? r[ttIdx] : '儲備幹部',
-          extension: extVal, // 抓取哈伯在職名冊的 I 欄資料
+          extension: extVal,
           phone: phoneIdx >= 0 ? r[phoneIdx] : '',
           email: emIdx >= 0 ? r[emIdx] : '',
           chatApps: chatIdx >= 0 ? r[chatIdx] : '',
@@ -469,9 +432,12 @@ F:","02-87939000#2117
     }
 
     function initData() {
-      allMembers = buildRoster(RAW_HUBBLE_DATA, RAW_NASA_DATA);
+      // 先用預設資料秒開畫面
+      allMembers = buildRoster(BACKUP_HUBBLE_DATA, BACKUP_NASA_DATA);
       updateCompanyAndOrgOptions();
       renderDirectory();
+      // 同時背景自動去連線 Google 試算表拉取最新異動
+      syncData();
     }
 
     function updateCompanyAndOrgOptions() {
@@ -525,7 +491,7 @@ F:","02-87939000#2117
       }
 
       empty.classList.add('hidden');
-      grid.innerHTML = filtered.map((m, idx) => {
+      grid.innerHTML = filtered.map((m) => {
         return `
           <div onclick="openModal('${m.name}')" class="group relative flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-blue-400 hover:-translate-y-1 transition-all duration-200 cursor-pointer overflow-hidden p-5 text-left">
             ${m.nasaRole ? `
@@ -534,16 +500,12 @@ F:","02-87939000#2117
               </div>
             ` : ''}
 
-            <!-- 1. 個人大頭貼 (無照片時預設為姓氏文字) -->
             <div class="flex flex-col items-center text-center pt-1 pb-4 border-b border-slate-100">
               <div class="mb-3 relative group-hover:scale-105 transition-transform duration-300">
                 ${renderAvatarHtml(m.name, m.photoUrl, 'lg')}
               </div>
 
-              <!-- 2. 中文姓名 -->
               <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-700 transition-colors">${m.name}</h3>
-
-              <!-- 3. 英文別名 -->
               <p class="text-sm font-medium text-slate-500 mt-0.5 tracking-wide">${m.englishName || 'Team Member'}</p>
 
               <div class="flex items-center gap-1.5 mt-2 text-xs">
@@ -551,7 +513,6 @@ F:","02-87939000#2117
               </div>
             </div>
 
-            <!-- 卡片其餘部分：公司、組織資料、座位、分機、MBTI -->
             <div class="flex-1 py-3.5 space-y-2.5 text-xs text-slate-600">
               <div class="flex items-start gap-2">
                 <span class="text-slate-400">🏢</span>
@@ -622,7 +583,7 @@ F:","02-87939000#2117
           </div>
           <div class="flex gap-2 w-full sm:w-auto">
             ${fullEmail ? `<a href="mailto:${fullEmail}" class="px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl">寄送信件</a>` : ''}
-            <button onclick="navigator.clipboard.writeText('${m.name} 座位:${m.seat} 分機:${m.extension} 信箱:${fullEmail}'); alert('已複製聯絡資料！')" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl">複製資料</button>
+            <button onclick="navigator.clipboard.writeText('${m.name} 座位:${m.seat} 分機:${m.extension} 信箱:${fullEmail}'); alert('已複製聯絡資料！')" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer">複製資料</button>
           </div>
         </div>
 
@@ -631,10 +592,7 @@ F:","02-87939000#2117
             <h2 class="text-2xl sm:text-3xl font-bold text-slate-900">${m.name}</h2>
             <span class="text-lg font-medium text-slate-500">${m.englishName}</span>
             <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">${m.rank || '專員'}</span>
-            ${m.nasaRole ? `<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">NASA ${m.nasaRole}</span>` : ''}
-          </div>
-          <p class="text-sm text-slate-600 pt-1">
-            🏢 <b>${m.company}</b> / ${m.organization || '無組織資料'} ${m.erpUnit ? `(ERP: ${m.erpUnit})` : ''}
+            ${m.nasaRole ? `<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">NASA ${m.nasaRole}</span>` : ''} </div> <p class="text-sm text-slate-600 pt-1"> 🏢 <b>${m.company}</b> / ${m.organization \vert{}\vert{} '無組織資料'} ${m.erpUnit ? `(ERP: ${m.erpUnit})` : ''}
           </p>
         </div>
 
@@ -659,158 +617,4 @@ F:","02-87939000#2117
           </div>
 
           ${m.projectSummary ? `
-            <div class="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
-              <h4 class="text-xs font-bold text-blue-900 uppercase tracking-wider mb-1">負責業務 / 專案概述</h4>
-              <p class="text-sm text-slate-700 leading-relaxed">${m.projectSummary}</p>
-            </div>
-          ` : ''}
-
-          <div class="grid grid-cols-2 gap-3">
-            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span class="text-[10px] text-slate-400 block">出生月日</span>
-              <span class="text-sm font-semibold text-slate-800">${m.birthday || '未填寫'}</span>
-            </div>
-            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span class="text-[10px] text-slate-400 block">MBTI 性格類型</span>
-              <span class="text-sm font-semibold text-purple-700">${m.mbti || '未填寫'}</span>
-            </div>
-          </div>
-
-          ${m.interests ? `
-            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
-              <span class="text-[10px] text-amber-700 block font-bold">個人興趣與生活愛好</span>
-              <p class="text-xs font-medium text-slate-700 mt-1">${m.interests}</p>
-            </div>
-          ` : ''}
-        </div>
-      `;
-
-      document.getElementById('modal-content').innerHTML = content;
-      document.getElementById('detail-modal').classList.remove('hidden');
-    }
-
-    function closeModal() {
-      document.getElementById('detail-modal').classList.add('hidden');
-    }
-
-    // 重新整理 / 同步資料 (核心功能)
-    async function syncData() {
-      const btn = document.getElementById('btn-sync');
-      const icon = document.getElementById('sync-icon');
-      const text = document.getElementById('sync-text');
-
-      icon.classList.add('animate-spin-custom');
-      text.innerText = '同步中...';
-      btn.disabled = true;
-
-      showToast('資料同步中', '正在與 Google 試算表同步最新資料...', 'syncing');
-
-      // 模擬非同步請求
-      setTimeout(() => {
-        allMembers = buildRoster(RAW_HUBBLE_DATA, RAW_NASA_DATA);
-        renderDirectory();
-
-        const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-        document.getElementById('stat-time').innerText = timeStr;
-
-        icon.classList.remove('animate-spin-custom');
-        text.innerText = '重新整理 / 同步資料';
-        btn.disabled = false;
-
-        showToast('同步成功', '同步成功！已載入最新 Excel 異動', 'success');
-      }, 700);
-    }
-
-    function showToast(title, msg, type) {
-      const toast = document.getElementById('sync-toast');
-      const toastBox = document.getElementById('sync-toast-box');
-      document.getElementById('sync-toast-title').innerText = title;
-      document.getElementById('sync-toast-msg').innerText = msg;
-
-      if (type === 'syncing') {
-        toastBox.className = 'flex items-start gap-3 p-4 rounded-2xl shadow-xl border text-white bg-blue-900/95 border-blue-600';
-      } else {
-        toastBox.className = 'flex items-start gap-3 p-4 rounded-2xl shadow-xl border text-white bg-slate-900/95 border-emerald-500/50';
-      }
-
-      toast.classList.remove('hidden');
-      if (type !== 'syncing') {
-        setTimeout(hideToast, 4000);
-      }
-    }
-
-    function hideToast() {
-      document.getElementById('sync-toast').classList.add('hidden');
-    }
-
-    // 密碼驗證邏輯 (預設密碼：nasa7885)
-    const CORRECT_PASSWORD = 'nasa7885';
-    const AUTH_KEY = 'nasa_auth_granted_v1';
-
-    function checkAuth() {
-      const isAuth = localStorage.getItem(AUTH_KEY) === 'true' || sessionStorage.getItem(AUTH_KEY) === 'true';
-      const gate = document.getElementById('password-gate');
-      const app = document.getElementById('main-app');
-      if (isAuth) {
-        gate.classList.add('hidden');
-        app.classList.remove('hidden');
-      } else {
-        gate.classList.remove('hidden');
-        app.classList.add('hidden');
-        setTimeout(() => {
-          document.getElementById('input-password').focus();
-        }, 100);
-      }
-    }
-
-    function handlePasswordSubmit(e) {
-      e.preventDefault();
-      const val = document.getElementById('input-password').value;
-      const remember = document.getElementById('checkbox-remember').checked;
-      const errorEl = document.getElementById('password-error');
-
-      if (val && val.trim() === CORRECT_PASSWORD) {
-        errorEl.classList.add('hidden');
-        if (remember) {
-          localStorage.setItem(AUTH_KEY, 'true');
-        } else {
-          sessionStorage.setItem(AUTH_KEY, 'true');
-        }
-        checkAuth();
-      } else {
-        errorEl.classList.remove('hidden');
-        const input = document.getElementById('input-password');
-        input.classList.add('border-rose-500');
-        input.select();
-        setTimeout(() => input.classList.remove('border-rose-500'), 500);
-      }
-    }
-
-    function togglePasswordVisibility() {
-      const input = document.getElementById('input-password');
-      const icon = document.getElementById('eye-icon');
-      if (input.type === 'password') {
-        input.type = 'text';
-        icon.innerText = '🔒';
-      } else {
-        input.type = 'password';
-        icon.innerText = '👁️';
-      }
-    }
-
-    function lockApp() {
-      localStorage.removeItem(AUTH_KEY);
-      sessionStorage.removeItem(AUTH_KEY);
-      document.getElementById('input-password').value = '';
-      checkAuth();
-    }
-
-    // 頁面初次載入
-    window.addEventListener('DOMContentLoaded', () => {
-      checkAuth();
-      initData();
-    });
-  </script>
-</body>
-</html>
+            <div class="bg-blue-
