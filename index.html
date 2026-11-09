@@ -28,7 +28,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
 
-  <!-- 密碼驗證鎖定畫面 (無 form 標籤，絕對不跳轉) -->
+  <!-- 密碼驗證鎖定畫面 -->
   <div id="password-gate" class="fixed inset-0 z-50 bg-slate-50 text-slate-800 flex items-center justify-center p-4">
     <div class="w-full max-w-md relative z-10 bg-white border border-slate-200/90 rounded-3xl p-7 sm:p-9 shadow-xl">
       <div class="flex flex-col items-center text-center mb-7">
@@ -85,7 +85,7 @@
             <span>·</span>
             <div>幹部人數：<span id="stat-officers" class="font-bold text-amber-700 font-mono">0</span> 位</div>
             <span>·</span>
-            <div>資料狀態：<span id="stat-time" class="text-blue-600 font-mono">載入中</span></div>
+            <div>資料狀態：<span id="stat-time" class="text-blue-600 font-mono">連線中</span></div>
           </div>
 
           <div class="flex items-center gap-3">
@@ -182,26 +182,22 @@
     let allMembers = [];
     let onlyOfficers = false;
 
-    function sanitizeExtension(row, header) {
-      const extIdx = header.findIndex(h => h.includes('分機') || h.includes('專線'));
-      let candidates = [];
-      if (extIdx >= 0) {
-        candidates.push(row[extIdx]);
-        if (row[extIdx + 1]) candidates.push(row[extIdx + 1]);
+    // 精確抓取 I 欄分機
+    function extractExtension(row, header) {
+      // 在 Excel 中，I 欄是第 9 欄 (索引 8)
+      // 同時檢查索引 7 與 8
+      let cand = row[8] || row[7] || '';
+      if (!cand || cand === 'O:' || cand.startsWith('O:')) {
+        cand = row[8] || '';
       }
 
-      for (let cand of candidates) {
-        if (!cand) continue;
-        const line = cand.split(/[\r\n]+/)[0].trim();
-        let clean = line.replace(/^[OF]:\s*/i, '').trim();
-        if (clean.includes('#')) {
-          return `#${clean.split('#')[1].trim()}`;
-        }
-        if (clean && clean !== 'O:' && clean !== 'F:' && clean.length > 2) {
-          return clean;
-        }
+      const line = cand.split(/[\r\n]+/)[0].trim();
+      let clean = line.replace(/^[OF]:\s*/i, '').trim();
+
+      if (clean.includes('#')) {
+        return `#${clean.split('#')[1].trim()}`;
       }
-      return '無分機';
+      return (clean && clean.length > 2) ? clean : '無分機';
     }
 
     function getDirectImageUrl(url) {
@@ -270,16 +266,21 @@
       }
       const hHeader = hRows[hHeadIdx] || [];
 
-      const nIdx = hHeader.indexOf('姓名');
-      const enIdx = hHeader.indexOf('英文別名');
-      const rkIdx = hHeader.indexOf('職級');
-      const ttIdx = hHeader.indexOf('職稱');
-      const phoneIdx = hHeader.findIndex(h => h.includes('電話'));
+      // 找出關鍵標題索引
+      const nIdx = hHeader.indexOf('姓名') >= 0 ? hHeader.indexOf('姓名') : 2;
+      const enIdx = hHeader.indexOf('英文別名') >= 0 ? hHeader.indexOf('英文別名') : 3;
+      const rkIdx = hHeader.indexOf('職級') >= 0 ? hHeader.indexOf('職級') : 4;
+      const ttIdx = hHeader.indexOf('職稱') >= 0 ? hHeader.indexOf('職稱') : 5;
+      const phoneIdx = hHeader.findIndex(h => h.includes('行動電話') || h.includes('電話'));
       const emIdx = hHeader.findIndex(h => h.includes('MAIL') || h.includes('mail'));
-      const chatIdx = hHeader.indexOf('通訊APP');
-      const seatIdx = hHeader.indexOf('座位編號');
-      const compIdx = hHeader.indexOf('公司');
-      const orgIdx = hHeader.indexOf('組織資料');
+      const chatIdx = hHeader.indexOf('通訊APP') >= 0 ? hHeader.indexOf('通訊APP') : 11;
+      const seatIdx = hHeader.indexOf('座位編號') >= 0 ? hHeader.indexOf('座位編號') : 12;
+      const compIdx = hHeader.indexOf('公司') >= 0 ? hHeader.indexOf('公司') : 14;
+
+      // 重要：P 欄是第 16 欄 (索引 15)
+      // 若文字找到「組織資料」優先，否則直接鎖定索引 15 (P欄)
+      let orgIdx = hHeader.findIndex(h => h.includes('組織'));
+      if (orgIdx < 0) orgIdx = 15;
 
       const hMap = new Map();
       for (let i = hHeadIdx + 1; i < hRows.length; i++) {
@@ -288,23 +289,29 @@
         const name = (r[nIdx] || '').trim();
         if (!name || name === '姓名') continue;
 
-        const cleanExt = sanitizeExtension(r, hHeader);
+        // 精準取得 P 欄組織資料 (若 r[orgIdx] 存在即取，否則嘗試 r[15])
+        let orgVal = (r[orgIdx] || r[15] || '').trim();
+        if (!orgVal || orgVal === 'undefined') orgVal = '無組織資料';
+
+        // 取得分機
+        const extVal = extractExtension(r, hHeader);
 
         hMap.set(name, {
           name,
-          englishName: enIdx >= 0 ? r[enIdx] : '',
-          rank: rkIdx >= 0 && r[rkIdx] ? r[rkIdx] : '專員',
-          title: ttIdx >= 0 && r[ttIdx] ? r[ttIdx] : '儲備幹部',
-          extension: cleanExt,
-          phone: phoneIdx >= 0 ? r[phoneIdx] : '',
-          email: emIdx >= 0 ? r[emIdx] : '',
-          chatApps: chatIdx >= 0 ? r[chatIdx] : '',
-          seat: seatIdx >= 0 ? r[seatIdx] : '待定',
-          company: compIdx >= 0 && r[compIdx] ? r[compIdx] : '雄獅',
-          organization: orgIdx >= 0 && r[orgIdx] ? r[orgIdx] : '無組織資料',
+          englishName: r[enIdx] || '',
+          rank: r[rkIdx] || '專員',
+          title: r[ttIdx] || '儲備幹部',
+          extension: extVal,
+          phone: phoneIdx >= 0 ? r[phoneIdx] : (r[9] || ''),
+          email: emIdx >= 0 ? r[emIdx] : (r[10] || ''),
+          chatApps: r[chatIdx] || r[11] || '',
+          seat: r[seatIdx] || r[12] || '待定',
+          company: r[compIdx] || r[14] || '雄獅',
+          organization: orgVal,
         });
       }
 
+      // NASA 問卷
       const nHeader = nRows[0] || [];
       const nmIdx = nHeader.findIndex(h => h.includes('姓名'));
       const roleIdx = nHeader.findIndex(h => h.includes('幹部'));
@@ -372,6 +379,7 @@
       allMembers.forEach(m => {
         if (m.company && m.company !== 'undefined') comps.add(m.company.trim());
         if (m.organization && m.organization !== 'undefined' && m.organization !== '無組織資料') {
+          // 支援依主部門分類 (如 客製產品部、行銷部)
           const mainOrg = m.organization.split('/')[0].trim();
           if (mainOrg) orgs.add(mainOrg);
         }
@@ -425,7 +433,7 @@
             </div>
 
             <div class="space-y-1.5 text-xs text-slate-600 border-t border-slate-100 pt-3">
-              <div class="truncate">🏢 <span class="font-medium text-slate-700">${m.company}</span> · ${m.organization}</div>
+              <div class="truncate">🏢 <span class="font-medium text-slate-700">${m.company}</span> · <span class="text-blue-700 font-medium">${m.organization}</span></div>
               <div>📍 座位：<b>${m.seat}</b></div>
               <div>📞 分機：<b class="text-blue-700 font-mono text-sm">${m.extension}</b></div>
             </div>
@@ -464,7 +472,7 @@
             ${m.nasaRole ? `<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">★ NASA ${m.nasaRole}</span>` : ''}
           </div>
           <p class="text-xs text-slate-600 pt-1">
-            🏢 <b>${m.company}</b> · ${m.organization}
+            🏢 <b>${m.company}</b> · <span class="text-blue-700 font-medium">${m.organization}</span>
           </p>
         </div>
 
@@ -559,8 +567,8 @@
         updateDropdownOptions();
         renderUI();
 
-        document.getElementById('stat-time').innerText = '最新雲端同步';
-        showToast('同步成功', '已即時載入試算表最新成員資料！');
+        document.getElementById('stat-time').innerText = '雲端已同步';
+        showToast('同步成功', '已載入最新試算表資料！');
       } catch (err) {
         allMembers = buildRoster(DEFAULT_HUBBLE, DEFAULT_NASA);
         updateDropdownOptions();
