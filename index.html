@@ -157,18 +157,18 @@
 ,240333,李浩然,hoyin,資深專員,儲備幹部,,O:,02-87939000#8190,0960800467,hoyinli,LINE:hoyinzz,3D-D3,總管,雄獅,企本二處/供應商管理部
 ,240355,孫瑞廷,Ray,資深專員,儲備幹部,,O:,02-87939000#9097,0975710592,raysun,"LINE:j5488951\nWeChat:xeojung",5B-K3,B2C行銷,雄獅,行銷部/國際行銷組
 ,240356,黃俞蓁,Alice,專員,儲備幹部,,O:,02-87939000#2436,0920050677,aliceyhuang,LINE:yuchen0623,4C-D6,產品主題,雄獅,主題旅遊部/璽品長線組
-,250342,馮子凌,Temmy,專員,儲備幹部,,O:,02-87939000#2148,0921860702,temmyfeng,LINE:a8586718,6B-O5,產品主題,雄獅,主題旅遊部/國外鐵道組
+,250342,馮子凌,Temmy,專員,儲備幹部,,"O:\nF:","02-87939000#2148\n02-77502018",0921860702,temmyfeng,LINE:a8586718,6B-O5,產品主題,雄獅,主題旅遊部/國外鐵道組
 ,250388,林欣怡,Elisa,專員,儲備幹部,,O:,02-87939000#8023,0908751220,elisalin,,3D-D2,總管,雄獅,企本二處/經營企劃部
 ,250389,高玉淳,Ellie,專員,儲備幹部,,O:,02-87939000#2569,0980950466,elliekao,LINE:ellie0980950466,8B-O2,差旅台北,雄獅,公商差旅部/國際企業服務組
 ,250390,彭筠,YUN,專員,儲備幹部,,O:,02-87939000#2394,0984320207,maypeng,,6B-P5,產品主題,雄獅,主題旅遊部/國外鐵道組
 ,250391,陳冠廷,Alan,專員,儲備幹部,,O:,02-87939000#8173,0978216878,ktchen,"LINE:sje262520\nWhatsApp:+886978216878",3D-A5,總管,雄獅,企本二處/供應商管理部
 ,250508,李庭瑜,Tini,專員,儲備幹部,,O:,02-87939000#9106,0926191343,tinilee,LINE:tini8999,5B-R4,批售行銷,雄獅,行銷部/通路行銷組
-,250512,辰野百音,Mone,專員,儲備幹部,,O:,02-87939000#2627,0937596793,monetatsuno,,6B-E2,入境台北,雄獅,入境部/日語組
+,250512,辰野百音,Mone,專員,儲備幹部,,"O:\nF:","02-87939000#2627\n02-77502113",0937596793,monetatsuno,,6B-E2,入境台北,雄獅,入境部/日語組
 ,250543,黃潔瑜,Mini,專員,儲備幹部,,O:,02-87939000#2955,0966404311,minivong,"LINE:vongumary_0802\nWeChat:VongKitU",6A-Q2,獎旅台北,雄獅,獎勵旅遊部/業務一組
 ,260083,陳亭伊,Olivia,專員,儲備幹部,,O:,02-87939000#2378,0976895241,oliviachen,,4B-E3,歐洲,雄獅,歐洲部/東歐組
-,260200,邱玫雅,Mei,專員,儲備幹部,,O:,0000-0000#0000,0900000000,meichiu,,5B-M2,產品行銷,雄獅,行銷部/產品行銷組
+,260200,邱玫雅,Mei,專員,儲備幹部,,O:,0000-0000#0000,0900000000,meichiu,,"5B-M2\n5B-N4",產品行銷,雄獅,行銷部/產品行銷組
 ,260201,潘氏竹玲,PHAN THI TRUC LINH,專員,儲備幹部,,O:,02-87939000#0000,0976386201,charlinepan,LINE:panshizhuling,8B-B0,國際辦,雄獅,全球事業發展處/全球出境產品部
-,260202,江其儒,zuzu,專員,儲備幹部,,O:,02-87939000#2117,0963669727,zuzuchiang,,4C-A7,產品主題,雄獅,主題旅遊部/璽品短線組
+,260202,江其儒,zuzu,專員,儲備幹部,,"O:\nF:","02-87939000#2117\n02-77502173",0963669727,zuzuchiang,,4C-A7,產品主題,雄獅,主題旅遊部/璽品短線組
 ,260246,劉名媛,Alice,專員,儲備幹部,,O:,02-87939000#8052,0906935925,alicemliu,,3D-A6,總管,雄獅,經營企劃部/海外企劃組`;
 
     const DEFAULT_NASA = `時間戳記,中文姓名,NASA幹部職位,出生月日 (MM/DD),你最美麗/帥氣的照片一張,MBTI,興趣,負責業務/專案概述
@@ -181,6 +181,41 @@
 
     let allMembers = [];
     let onlyOfficers = false;
+
+    // 真正能正確解析「儲存格內多行換行」的標準 CSV 解析器
+    function parseFullCSV(text) {
+      if (!text) return [];
+      const clean = text.replace(/^\uFEFF/, '');
+      const rows = [];
+      let row = [''];
+      let inQuote = false;
+      let i = 0;
+      while (i < clean.length) {
+        const c = clean[i];
+        const next = clean[i + 1];
+        if (c === '"') {
+          if (inQuote && next === '"') {
+            row[row.length - 1] += '"';
+            i += 2;
+            continue;
+          }
+          inQuote = !inQuote;
+        } else if (c === ',' && !inQuote) {
+          row.push('');
+        } else if ((c === '\r' || c === '\n') && !inQuote) {
+          if (c === '\r' && next === '\n') i++;
+          rows.push(row.map(s => s.trim()));
+          row = [''];
+        } else {
+          row[row.length - 1] += c;
+        }
+        i++;
+      }
+      if (row.length > 1 || (row.length === 1 && row[0] !== '')) {
+        rows.push(row.map(s => s.trim()));
+      }
+      return rows.filter(r => r.some(cell => cell.length > 0));
+    }
 
     // 精準提取 # 後面的四碼分機
     function extractPureExtension(row) {
@@ -196,22 +231,26 @@
       return '無分機';
     }
 
-    // 智能鎖定 P 欄或組織資料字串 (例如包含 部/組、處/部 等)
-    function extractPureOrg(row, header) {
-      // 1. 優先找原本 P 欄 (第16欄，索引 15)
+    // 智能鎖定 P 欄組織資料
+    function extractPureOrg(row) {
+      // 在 Excel 中，P 欄是第 16 欄 (索引 15)
       if (row[15] && row[15].trim().length > 1 && !row[15].includes('http')) {
         return row[15].trim();
       }
-
-      // 2. 在整列中尋找帶有「部」或「組」的結構字串
+      // 搜尋任何包含「部/組」的欄位
       for (let i = 10; i < row.length; i++) {
         const val = (row[i] || '').trim();
         if ((val.includes('部') || val.includes('組') || val.includes('處')) && !val.includes('@') && !val.includes('LINE')) {
           return val;
         }
       }
-
       return '';
+    }
+
+    // 座位多行時取第一行
+    function extractPureSeat(row) {
+      const seat = row[12] || '';
+      return seat.split(/[\r\n]+/)[0].trim() || '待定';
     }
 
     function getDirectImageUrl(url) {
@@ -252,27 +291,9 @@
       `;
     }
 
-    function parseCSV(text) {
-      if (!text) return [];
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-      return lines.map(line => {
-        const row = [];
-        let inQuotes = false;
-        let cur = '';
-        for (let i = 0; i < line.length; i++) {
-          const c = line[i];
-          if (c === '"') { inQuotes = !inQuotes; }
-          else if (c === ',' && !inQuotes) { row.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
-          else { cur += c; }
-        }
-        row.push(cur.trim().replace(/^"|"$/g, ''));
-        return row;
-      });
-    }
-
     function buildRoster(hubbleCsv, nasaCsv) {
-      const hRows = parseCSV(hubbleCsv);
-      const nRows = parseCSV(nasaCsv);
+      const hRows = parseFullCSV(hubbleCsv);
+      const nRows = parseFullCSV(nasaCsv);
 
       let hHeadIdx = 0;
       for (let i = 0; i < Math.min(hRows.length, 5); i++) {
@@ -287,7 +308,6 @@
       const phoneIdx = hHeader.findIndex(h => h.includes('行動電話') || h.includes('電話'));
       const emIdx = hHeader.findIndex(h => h.includes('MAIL') || h.includes('mail'));
       const chatIdx = hHeader.indexOf('通訊APP') >= 0 ? hHeader.indexOf('通訊APP') : 11;
-      const seatIdx = hHeader.indexOf('座位編號') >= 0 ? hHeader.indexOf('座位編號') : 12;
       const compIdx = hHeader.indexOf('公司') >= 0 ? hHeader.indexOf('公司') : 14;
 
       const hMap = new Map();
@@ -297,8 +317,9 @@
         const name = (r[nIdx] || '').trim();
         if (!name || name === '姓名') continue;
 
-        const orgVal = extractPureOrg(r, hHeader);
+        const orgVal = extractPureOrg(r);
         const extVal = extractPureExtension(r);
+        const seatVal = extractPureSeat(r);
 
         hMap.set(name, {
           name,
@@ -309,7 +330,7 @@
           phone: phoneIdx >= 0 ? r[phoneIdx] : (r[9] || ''),
           email: emIdx >= 0 ? r[emIdx] : (r[10] || ''),
           chatApps: r[chatIdx] || r[11] || '',
-          seat: r[seatIdx] || r[12] || '待定',
+          seat: seatVal,
           company: r[compIdx] || r[14] || '雄獅',
           organization: orgVal,
         });
@@ -347,7 +368,6 @@
         const h = hMap.get(name) || {};
         const n = nMap.get(name) || {};
 
-        // 組織資料：若哈伯在職有，優先用；若無（例如只填NASA問卷者），用專案概述或預設補齊，絕不空白
         let finalOrg = h.organization || '';
         if (!finalOrg || finalOrg === '無組織資料') {
           if (n.projectSummary) {
