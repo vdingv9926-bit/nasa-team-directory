@@ -28,7 +28,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
 
-  <!-- 密碼驗證鎖定畫面 -->
+  <!-- 密碼驗證鎖定畫面 (無 form 標籤，絕對不跳轉) -->
   <div id="password-gate" class="fixed inset-0 z-50 bg-slate-50 text-slate-800 flex items-center justify-center p-4">
     <div class="w-full max-w-md relative z-10 bg-white border border-slate-200/90 rounded-3xl p-7 sm:p-9 shadow-xl">
       <div class="flex flex-col items-center text-center mb-7">
@@ -55,11 +55,11 @@
         </div>
 
         <div class="flex items-center gap-2 pt-1 text-xs text-slate-600">
-          <input id="checkbox-remember" type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-blue-600">
+          <input id="checkbox-remember" type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-blue-600 cursor-pointer">
           <label for="checkbox-remember" class="cursor-pointer">記住登入狀態</label>
         </div>
 
-        <button type="button" id="btn-login" class="w-full mt-2 py-3 px-4 text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-all cursor-pointer">
+        <button type="button" id="btn-login" onclick="executeLogin()" class="w-full mt-2 py-3 px-4 text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-all cursor-pointer">
           解鎖並進入通訊錄 →
         </button>
       </div>
@@ -85,7 +85,7 @@
             <span>·</span>
             <div>幹部人數：<span id="stat-officers" class="font-bold text-amber-700 font-mono">0</span> 位</div>
             <span>·</span>
-            <div>資料狀態：<span id="stat-time" class="text-blue-600 font-mono">已就緒</span></div>
+            <div>資料狀態：<span id="stat-time" class="text-blue-600 font-mono">載入中</span></div>
           </div>
 
           <div class="flex items-center gap-3">
@@ -102,7 +102,7 @@
     </header>
 
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- 搜尋與下拉篩選 -->
+      <!-- 篩選列 -->
       <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-xs flex flex-col md:flex-row gap-3">
         <input id="input-search" oninput="handleFilterChange()" type="text" placeholder="搜尋中文姓名、英文別名、分機、座位、關鍵字..." class="flex-grow px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
         <select id="select-company" onchange="handleFilterChange()" class="px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-700 outline-none">
@@ -126,4 +126,525 @@
   </div>
 
   <!-- 詳細視窗 Modal -->
-  <div id="detail-modal" class="hidden-custom fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onclick="
+  <div id="detail-modal" class="hidden-custom fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()">
+    <div class="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto" onclick="event.stopPropagation()">
+      <div class="h-24 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 relative">
+        <button onclick="closeModal()" class="absolute top-4 right-4 p-2 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full cursor-pointer">✕</button>
+        <div class="absolute top-4 left-6 text-xs font-mono font-semibold text-blue-200 px-2.5 py-1 bg-white/10 rounded-md">NASA Team Member</div>
+      </div>
+      <div class="p-6 sm:p-8 pt-0 relative" id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- 同步提示 Toast -->
+  <div id="sync-toast" class="hidden-custom fixed bottom-6 right-6 z-50 max-w-md w-full px-4">
+    <div id="sync-toast-box" class="flex items-start gap-3 p-4 rounded-2xl shadow-xl border text-white bg-slate-900 border-slate-700">
+      <div class="flex-1 min-w-0">
+        <p id="sync-toast-title" class="text-sm font-semibold">同步狀態</p>
+        <p id="sync-toast-msg" class="text-xs text-slate-300 mt-0.5 leading-relaxed"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const HUBBLE_URL = 'https://docs.google.com/spreadsheets/d/150xzjXHOJyRFvaSEVdaazkA4k_WbHj6Ak9HPCRU8_KQ/gviz/tq?tqx=out:csv';
+    const NASA_URL = 'https://docs.google.com/spreadsheets/d/1_0yexhQrjE_P-x9cJy543tpPbLZl_-wViitAgiqhbvA/gviz/tq?tqx=out:csv';
+
+    const DEFAULT_HUBBLE = `,員編,姓名,英文別名,職級,職稱,居家上班日,"分機/專線",,"行動電話",E-MAIL,通訊APP,座位編號,ERP單位,公司,組織資料
+,230508,柯奕安,YI-AN,專員,儲備幹部,,O:,02-87939000#2949,0906939285,andyke,,6A-P5,客製台北,雄獅,客製產品部/客製二組
+,240330,張元齡,Chloe,資深專員,儲備幹部,,O:,02-87939000#8058,0979678666,chloeylchang,,3B-A3,總管,雄獅,人才策略與發展部/人才培育組
+,240332,薛羽崴,Noma,專員,儲備幹部,,O:,02-87939000#2601,0983182805,nomahsueh,,8B-O1,差旅台北,雄獅,公商差旅部/國際企業服務組
+,240333,李浩然,hoyin,資深專員,儲備幹部,,O:,02-87939000#8190,0960800467,hoyinli,LINE:hoyinzz,3D-D3,總管,雄獅,企本二處/供應商管理部
+,240355,孫瑞廷,Ray,資深專員,儲備幹部,,O:,02-87939000#9097,0975710592,raysun,"LINE:j5488951\nWeChat:xeojung",5B-K3,B2C行銷,雄獅,行銷部/國際行銷組
+,240356,黃俞蓁,Alice,專員,儲備幹部,,O:,02-87939000#2436,0920050677,aliceyhuang,LINE:yuchen0623,4C-D6,產品主題,雄獅,主題旅遊部/璽品長線組
+,250342,馮子凌,Temmy,專員,儲備幹部,,O:,02-87939000#2148,0921860702,temmyfeng,LINE:a8586718,6B-O5,產品主題,雄獅,主題旅遊部/國外鐵道組
+,250388,林欣怡,Elisa,專員,儲備幹部,,O:,02-87939000#8023,0908751220,elisalin,,3D-D2,總管,雄獅,企本二處/經營企劃部
+,250389,高玉淳,Ellie,專員,儲備幹部,,O:,02-87939000#2569,0980950466,elliekao,LINE:ellie0980950466,8B-O2,差旅台北,雄獅,公商差旅部/國際企業服務組
+,250390,彭筠,YUN,專員,儲備幹部,,O:,02-87939000#2394,0984320207,maypeng,,6B-P5,產品主題,雄獅,主題旅遊部/國外鐵道組
+,250391,陳冠廷,Alan,專員,儲備幹部,,O:,02-87939000#8173,0978216878,ktchen,"LINE:sje262520\nWhatsApp:+886978216878",3D-A5,總管,雄獅,企本二處/供應商管理部
+,250508,李庭瑜,Tini,專員,儲備幹部,,O:,02-87939000#9106,0926191343,tinilee,LINE:tini8999,5B-R4,批售行銷,雄獅,行銷部/通路行銷組
+,250512,辰野百音,Mone,專員,儲備幹部,,O:,02-87939000#2627,0937596793,monetatsuno,,6B-E2,入境台北,雄獅,入境部/日語組
+,250543,黃潔瑜,Mini,專員,儲備幹部,,O:,02-87939000#2955,0966404311,minivong,"LINE:vongumary_0802\nWeChat:VongKitU",6A-Q2,獎旅台北,雄獅,獎勵旅遊部/業務一組
+,260083,陳亭伊,Olivia,專員,儲備幹部,,O:,02-87939000#2378,0976895241,oliviachen,,4B-E3,歐洲,雄獅,歐洲部/東歐組
+,260200,邱玫雅,Mei,專員,儲備幹部,,O:,0000-0000#0000,0900000000,meichiu,,5B-M2,產品行銷,雄獅,行銷部/產品行銷組
+,260201,潘氏竹玲,PHAN THI TRUC LINH,專員,儲備幹部,,O:,02-87939000#0000,0976386201,charlinepan,LINE:panshizhuling,8B-B0,國際辦,雄獅,全球事業發展處/全球出境產品部
+,260202,江其儒,zuzu,專員,儲備幹部,,O:,02-87939000#2117,0963669727,zuzuchiang,,4C-A7,產品主題,雄獅,主題旅遊部/璽品短線組
+,260246,劉名媛,Alice,專員,儲備幹部,,O:,02-87939000#8052,0906935925,alicemliu,,3D-A6,總管,雄獅,經營企劃部/海外企劃組`;
+
+    const DEFAULT_NASA = `時間戳記,中文姓名,NASA幹部職位,出生月日 (MM/DD),你最美麗/帥氣的照片一張,MBTI,興趣,負責業務/專案概述
+2026/10/22 上午 11:00:08,李浩然,,03/18,https://drive.google.com/open?id=1IA8FQX2mpwgHxMaMpiRjnOKedaMwTRrL,ENFJ,羽球、露營,導領E化平台、KM
+2026/10/22 下午 4:30:34,郭瓔慈,,10/07,https://drive.google.com/open?id=1wxWsoK2_4jKmtCDmscBi4uWvqCrTeKvl,ENTJ,運動 出去玩 喝酒🍺,全球coach tour
+2026/10/22 下午 5:21:39,龍俞孜,副團長,12/02,https://drive.google.com/open?id=1MLCZnwcrf-Dr815jszOPItoK8lg1gEf8,,,差旅企劃
+2026/10/26 上午 8:42:04,張俽瑜,,08/05,https://drive.google.com/open?id=1P3Ryv7wdJTEP641CzNzZm50nlO5oS9o8,ISFJ,追劇看綜藝 健行 看海,財務部
+2026/10/27 下午 9:39:27,張元齡,,06/21,https://drive.google.com/open?id=1IW0quHnobceIiyBTs195KCNQPwJH9XAd,ISFJ,努力培養運動習慣中,人才培育
+2026/10/29 下午 1:54:36,陳冠廷,團長,04/05,https://drive.google.com/open?id=1c5w97H1AIwnpgo7cPzOrbKd8gS6jFrYw,ENFJ,旅遊、看電影、吃美食,企本二處 / 供應商管理部；供應商支付優化、供應商日常營運、制度流程優化`;
+
+    let allMembers = [];
+    let onlyOfficers = false;
+
+    function sanitizeExtension(row, header) {
+      const extIdx = header.findIndex(h => h.includes('分機') || h.includes('專線'));
+      let candidates = [];
+      if (extIdx >= 0) {
+        candidates.push(row[extIdx]);
+        if (row[extIdx + 1]) candidates.push(row[extIdx + 1]);
+      }
+
+      for (let cand of candidates) {
+        if (!cand) continue;
+        const line = cand.split(/[\r\n]+/)[0].trim();
+        let clean = line.replace(/^[OF]:\s*/i, '').trim();
+        if (clean.includes('#')) {
+          return `#${clean.split('#')[1].trim()}`;
+        }
+        if (clean && clean !== 'O:' && clean !== 'F:' && clean.length > 2) {
+          return clean;
+        }
+      }
+      return '無分機';
+    }
+
+    function getDirectImageUrl(url) {
+      if (!url) return '';
+      const match = url.match(/(?:open\?id=|file\/d\/|uc\?id=)([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w600`;
+      }
+      return url;
+    }
+
+    function getSurname(name) {
+      if (!name) return '友';
+      const trimmed = name.trim();
+      const compound = ['歐陽', '司馬', '諸葛', '公孫', '皇甫', '夏侯', '辰野'];
+      for (const cs of compound) {
+        if (trimmed.startsWith(cs)) return cs;
+      }
+      return trimmed.charAt(0);
+    }
+
+    function renderAvatar(name, photoUrl, size = 'md') {
+      const surname = getSurname(name);
+      const directUrl = getDirectImageUrl(photoUrl);
+      const szClass = size === 'lg' ? 'w-24 h-24 text-3xl' : 'w-16 h-16 text-2xl';
+
+      const fallbackHtml = `
+        <div class="${szClass} rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-800 text-white flex items-center justify-center font-bold shadow-md ring-4 ring-white shrink-0">
+          ${surname}
+        </div>`;
+
+      if (!directUrl) return fallbackHtml;
+
+      return `
+        <img src="${directUrl}" alt="${name}" 
+          class="${szClass} rounded-2xl object-cover ring-4 ring-white shadow-md shrink-0"
+          onerror="this.outerHTML='<div class=\\'${szClass} rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-800 text-white flex items-center justify-center font-bold shadow-md ring-4 ring-white shrink-0\\'>${surname}</div>'">
+      `;
+    }
+
+    function parseCSV(text) {
+      if (!text) return [];
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+      return lines.map(line => {
+        const row = [];
+        let inQuotes = false;
+        let cur = '';
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') { inQuotes = !inQuotes; }
+          else if (c === ',' && !inQuotes) { row.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
+          else { cur += c; }
+        }
+        row.push(cur.trim().replace(/^"|"$/g, ''));
+        return row;
+      });
+    }
+
+    function buildRoster(hubbleCsv, nasaCsv) {
+      const hRows = parseCSV(hubbleCsv);
+      const nRows = parseCSV(nasaCsv);
+
+      let hHeadIdx = 0;
+      for (let i = 0; i < Math.min(hRows.length, 5); i++) {
+        if (hRows[i].includes('姓名')) { hHeadIdx = i; break; }
+      }
+      const hHeader = hRows[hHeadIdx] || [];
+
+      const nIdx = hHeader.indexOf('姓名');
+      const enIdx = hHeader.indexOf('英文別名');
+      const rkIdx = hHeader.indexOf('職級');
+      const ttIdx = hHeader.indexOf('職稱');
+      const phoneIdx = hHeader.findIndex(h => h.includes('電話'));
+      const emIdx = hHeader.findIndex(h => h.includes('MAIL') || h.includes('mail'));
+      const chatIdx = hHeader.indexOf('通訊APP');
+      const seatIdx = hHeader.indexOf('座位編號');
+      const compIdx = hHeader.indexOf('公司');
+      const orgIdx = hHeader.indexOf('組織資料');
+
+      const hMap = new Map();
+      for (let i = hHeadIdx + 1; i < hRows.length; i++) {
+        const r = hRows[i];
+        if (!r || r.length <= nIdx) continue;
+        const name = (r[nIdx] || '').trim();
+        if (!name || name === '姓名') continue;
+
+        const cleanExt = sanitizeExtension(r, hHeader);
+
+        hMap.set(name, {
+          name,
+          englishName: enIdx >= 0 ? r[enIdx] : '',
+          rank: rkIdx >= 0 && r[rkIdx] ? r[rkIdx] : '專員',
+          title: ttIdx >= 0 && r[ttIdx] ? r[ttIdx] : '儲備幹部',
+          extension: cleanExt,
+          phone: phoneIdx >= 0 ? r[phoneIdx] : '',
+          email: emIdx >= 0 ? r[emIdx] : '',
+          chatApps: chatIdx >= 0 ? r[chatIdx] : '',
+          seat: seatIdx >= 0 ? r[seatIdx] : '待定',
+          company: compIdx >= 0 && r[compIdx] ? r[compIdx] : '雄獅',
+          organization: orgIdx >= 0 && r[orgIdx] ? r[orgIdx] : '無組織資料',
+        });
+      }
+
+      const nHeader = nRows[0] || [];
+      const nmIdx = nHeader.findIndex(h => h.includes('姓名'));
+      const roleIdx = nHeader.findIndex(h => h.includes('幹部'));
+      const bdayIdx = nHeader.findIndex(h => h.includes('出生') || h.includes('生日'));
+      const photoIdx = nHeader.findIndex(h => h.includes('照片') || h.includes('圖片'));
+      const mbtiIdx = nHeader.findIndex(h => h.includes('MBTI'));
+      const intIdx = nHeader.findIndex(h => h.includes('興趣'));
+      const prjIdx = nHeader.findIndex(h => h.includes('負責業務') || h.includes('專案'));
+
+      const nMap = new Map();
+      for (let i = 1; i < nRows.length; i++) {
+        const r = nRows[i];
+        if (!r || r.length <= nmIdx) continue;
+        const name = (r[nmIdx] || '').trim();
+        if (!name || name === '中文姓名') continue;
+        nMap.set(name, {
+          nasaRole: roleIdx >= 0 ? r[roleIdx] : '',
+          birthday: bdayIdx >= 0 ? r[bdayIdx] : '',
+          photoUrl: photoIdx >= 0 ? r[photoIdx] : '',
+          mbti: mbtiIdx >= 0 ? r[mbtiIdx] : '',
+          interests: intIdx >= 0 ? r[intIdx] : '',
+          projectSummary: prjIdx >= 0 ? r[prjIdx] : '',
+        });
+      }
+
+      const allNames = new Set([...hMap.keys(), ...nMap.keys()]);
+      const list = [];
+      allNames.forEach(name => {
+        const h = hMap.get(name) || {};
+        const n = nMap.get(name) || {};
+        list.push({
+          name,
+          englishName: h.englishName || '',
+          rank: h.rank || '專員',
+          title: h.title || '儲備幹部',
+          extension: h.extension || '無分機',
+          phone: h.phone || '',
+          email: h.email || '',
+          chatApps: h.chatApps || '',
+          seat: h.seat || '待定',
+          company: h.company || '雄獅',
+          organization: h.organization || 'NASA專案團隊',
+          nasaRole: n.nasaRole || '',
+          birthday: n.birthday || '',
+          photoUrl: n.photoUrl || '',
+          mbti: n.mbti || '',
+          interests: n.interests || '',
+          projectSummary: n.projectSummary || '',
+        });
+      });
+
+      return list.sort((a, b) => {
+        if (a.nasaRole && !b.nasaRole) return -1;
+        if (!a.nasaRole && b.nasaRole) return 1;
+        return a.name.localeCompare(b.name, 'zh-Hant');
+      });
+    }
+
+    function updateDropdownOptions() {
+      const compSelect = document.getElementById('select-company');
+      const orgSelect = document.getElementById('select-org');
+      const comps = new Set();
+      const orgs = new Set();
+
+      allMembers.forEach(m => {
+        if (m.company && m.company !== 'undefined') comps.add(m.company.trim());
+        if (m.organization && m.organization !== 'undefined' && m.organization !== '無組織資料') {
+          const mainOrg = m.organization.split('/')[0].trim();
+          if (mainOrg) orgs.add(mainOrg);
+        }
+      });
+
+      compSelect.innerHTML = '<option value="ALL">全部公司</option>' + 
+        Array.from(comps).map(c => `<option value="${c}">${c}</option>`).join('');
+
+      orgSelect.innerHTML = '<option value="ALL">全部組織部門</option>' + 
+        Array.from(orgs).map(o => `<option value="${o}">${o}</option>`).join('');
+    }
+
+    function renderUI() {
+      const grid = document.getElementById('members-grid');
+      const q = document.getElementById('input-search').value.toLowerCase().trim();
+      const comp = document.getElementById('select-company').value;
+      const org = document.getElementById('select-org').value;
+
+      const filtered = allMembers.filter(m => {
+        if (onlyOfficers && !m.nasaRole) return false;
+        if (comp !== 'ALL' && m.company !== comp) return false;
+        if (org !== 'ALL' && !m.organization.includes(org)) return false;
+        if (q && !`${m.name} ${m.englishName} ${m.extension} ${m.seat} ${m.organization} ${m.mbti} ${m.interests}`.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      document.getElementById('stat-total').innerText = allMembers.length;
+      document.getElementById('stat-officers').innerText = allMembers.filter(m => m.nasaRole).length;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        document.getElementById('empty-state').classList.remove('hidden-custom');
+        return;
+      }
+
+      document.getElementById('empty-state').classList.add('hidden-custom');
+
+      grid.innerHTML = filtered.map(m => `
+        <div onclick="openModal('${m.name}')" class="group bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs hover:shadow-xl hover:border-blue-400 hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between text-left">
+          <div>
+            <div class="flex items-center gap-3.5 mb-4">
+              ${renderAvatar(m.name, m.photoUrl, 'md')}
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <h3 class="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">${m.name}</h3>
+                  ${m.nasaRole ? `<span class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-100 text-amber-700">★ ${m.nasaRole}</span>` : ''}
+                </div>
+                <p class="text-xs text-slate-400 truncate">${m.englishName || 'Team Member'}</p>
+                <span class="inline-block mt-1 px-2 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-semibold">${m.rank}</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 text-xs text-slate-600 border-t border-slate-100 pt-3">
+              <div class="truncate">🏢 <span class="font-medium text-slate-700">${m.company}</span> · ${m.organization}</div>
+              <div>📍 座位：<b>${m.seat}</b></div>
+              <div>📞 分機：<b class="text-blue-700 font-mono text-sm">${m.extension}</b></div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+            ${m.mbti ? `<span class="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-semibold text-[11px]">MBTI: ${m.mbti}</span>` : '<span class="text-slate-400 text-[11px]">未填 MBTI</span>'}
+            <span class="text-blue-600 font-medium group-hover:translate-x-1 transition-transform">查看詳情 →</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openModal(name) {
+      const m = allMembers.find(x => x.name === name);
+      if (!m) return;
+
+      const fullEmail = m.email.includes('@') ? m.email : (m.email ? `${m.email}@liontravel.com` : '');
+
+      const content = `
+        <div class="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 -mt-12 mb-4">
+          <div class="relative">
+            ${renderAvatar(m.name, m.photoUrl, 'lg')}
+          </div>
+          <div class="flex gap-2 w-full sm:w-auto">
+            ${fullEmail ? `<a href="mailto:${fullEmail}" class="px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl">寄送信件</a>` : ''}
+            <button onclick="navigator.clipboard.writeText('${m.name} 座位:${m.seat} 分機:${m.extension} 信箱:${fullEmail}'); alert('已複製聯絡資料！')" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer">複製資料</button>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <div class="flex flex-wrap items-baseline gap-2.5">
+            <h2 class="text-2xl font-bold text-slate-900">${m.name}</h2>
+            <span class="text-base font-medium text-slate-500">${m.englishName}</span>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">${m.rank}</span>
+            ${m.nasaRole ? `<span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">★ NASA ${m.nasaRole}</span>` : ''}
+          </div>
+          <p class="text-xs text-slate-600 pt-1">
+            🏢 <b>${m.company}</b> · ${m.organization}
+          </p>
+        </div>
+
+        <div class="mt-5 space-y-3.5 text-xs">
+          <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 grid grid-cols-2 gap-3">
+            <div>
+              <span class="text-[10px] text-slate-400 block">座位編號</span>
+              <span class="text-xs font-bold text-slate-800">${m.seat}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">分機專線</span>
+              <span class="text-xs font-bold text-blue-700">${m.extension}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">行動電話</span>
+              <span class="text-xs font-semibold text-slate-800">${m.phone || '無'}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block">通訊軟體</span>
+              <span class="text-xs font-semibold text-slate-800 whitespace-pre-line">${m.chatApps || '無'}</span>
+            </div>
+          </div>
+
+          ${m.projectSummary ? `
+            <div class="bg-blue-50/60 p-4 rounded-2xl border border-blue-100">
+              <h4 class="text-[11px] font-bold text-blue-900 mb-1">負責業務 / 專案概述</h4>
+              <p class="text-xs text-slate-700 leading-relaxed">${m.projectSummary}</p>
+            </div>
+          ` : ''}
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <span class="text-[10px] text-slate-400 block">出生月日</span>
+              <span class="text-xs font-semibold text-slate-800">${m.birthday || '未填寫'}</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <span class="text-[10px] text-slate-400 block">MBTI 性格</span>
+              <span class="text-xs font-semibold text-purple-700">${m.mbti || '未填寫'}</span>
+            </div>
+          </div>
+
+          ${m.interests ? `
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+              <span class="text-[10px] text-amber-800 block font-bold">個人興趣與生活愛好</span>
+              <p class="text-xs text-slate-700 mt-1">${m.interests}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      document.getElementById('modal-content').innerHTML = content;
+      document.getElementById('detail-modal').classList.remove('hidden-custom');
+    }
+
+    function closeModal() {
+      document.getElementById('detail-modal').classList.add('hidden-custom');
+    }
+
+    function handleFilterChange() { renderUI(); }
+
+    function toggleOfficersFilter() {
+      onlyOfficers = !onlyOfficers;
+      const btn = document.getElementById('btn-officers');
+      if (onlyOfficers) {
+        btn.className = 'px-3 py-2 text-xs sm:text-sm font-medium rounded-xl bg-amber-500 text-white cursor-pointer shadow-xs whitespace-nowrap';
+      } else {
+        btn.className = 'px-3 py-2 text-xs sm:text-sm font-medium rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer whitespace-nowrap';
+      }
+      renderUI();
+    }
+
+    async function syncData() {
+      const icon = document.getElementById('sync-icon');
+      const text = document.getElementById('sync-text');
+      icon.classList.add('animate-spin-custom');
+      text.innerText = '同步中...';
+
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 4000);
+
+        const [resH, resN] = await Promise.all([
+          fetch(HUBBLE_URL, { signal: controller.signal }).then(r => r.ok ? r.text() : null).catch(() => null),
+          fetch(NASA_URL, { signal: controller.signal }).then(r => r.ok ? r.text() : null).catch(() => null)
+        ]);
+        clearTimeout(tid);
+
+        let hData = (resH && resH.includes('姓名')) ? resH : DEFAULT_HUBBLE;
+        let nData = (resN && resN.includes('姓名')) ? resN : DEFAULT_NASA;
+
+        allMembers = buildRoster(hData, nData);
+        updateDropdownOptions();
+        renderUI();
+
+        document.getElementById('stat-time').innerText = '最新雲端同步';
+        showToast('同步成功', '已即時載入試算表最新成員資料！');
+      } catch (err) {
+        allMembers = buildRoster(DEFAULT_HUBBLE, DEFAULT_NASA);
+        updateDropdownOptions();
+        renderUI();
+        document.getElementById('stat-time').innerText = '使用完整名冊';
+      } finally {
+        icon.classList.remove('animate-spin-custom');
+        text.innerText = '同步試算表';
+      }
+    }
+
+    function showToast(title, msg) {
+      const toast = document.getElementById('sync-toast');
+      document.getElementById('sync-toast-title').innerText = title;
+      document.getElementById('sync-toast-msg').innerText = msg;
+      toast.classList.remove('hidden-custom');
+      setTimeout(() => toast.classList.add('hidden-custom'), 3500);
+    }
+
+    function unlockApp() {
+      document.getElementById('password-gate').classList.add('hidden-custom');
+      document.getElementById('main-app').classList.remove('hidden-custom');
+
+      allMembers = buildRoster(DEFAULT_HUBBLE, DEFAULT_NASA);
+      updateDropdownOptions();
+      renderUI();
+
+      syncData();
+    }
+
+    function executeLogin() {
+      const input = document.getElementById('input-password');
+      const p = (input.value || '').trim();
+      const remember = document.getElementById('checkbox-remember').checked;
+
+      if (p === 'nasa7885') {
+        try {
+          if (remember) {
+            localStorage.setItem('nasa_auth', 'true');
+          } else {
+            sessionStorage.setItem('nasa_auth', 'true');
+          }
+        } catch (e) {}
+        unlockApp();
+      } else {
+        document.getElementById('password-error').classList.remove('hidden-custom');
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const input = document.getElementById('input-password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function lockApp() {
+      try {
+        localStorage.removeItem('nasa_auth');
+        sessionStorage.removeItem('nasa_auth');
+      } catch (e) {}
+      location.reload();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      let isAuth = false;
+      try {
+        isAuth = localStorage.getItem('nasa_auth') === 'true' || sessionStorage.getItem('nasa_auth') === 'true';
+      } catch (e) {}
+
+      if (isAuth) {
+        unlockApp();
+      }
+
+      const input = document.getElementById('input-password');
+      if (input) {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            executeLogin();
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
